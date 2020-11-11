@@ -1,0 +1,30 @@
+- name: build lab ddi config
+  hosts: localhost
+  gather_facts: false
+  vars:
+    nios_provider:
+      host: "{{ ddi_host }}"
+      username: "{{ ddi_username }}"
+      password: "{{ ddi_password }}"
+
+  tasks:
+    - name: Create a forward DNS zones
+      nios_zone:
+        name: "{{ item }}"
+        comment: local DNS zone
+        restart_if_needed: true
+        state: present
+        provider: "{{ nios_provider }}"
+      loop:
+        - gregsowell.com
+        - tacotuesday.com
+
+    - name: configure a reverse mapping zone on the system
+      nios_zone:
+        name: "{{ item }}"
+        zone_format: IPV4
+        state: present
+        provider: "{{ nios_provider }}"
+      loop:
+        - 192.168.100.0/24
+        - 10.1.12.0/24
