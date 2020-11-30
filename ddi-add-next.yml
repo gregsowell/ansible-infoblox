@@ -1,0 +1,36 @@
+- name: add a host based on whatever the next available IP is
+  hosts: localhost
+  gather_facts: false
+  vars:
+    test_host: host1.gregsowell.com
+    subnet_range: 192.168.100.0/24
+    
+    nios_provider:
+      host: "{{ ddi_host }}"
+      username: "{{ ddi_username }}"
+      password: "{{ ddi_password }}"
+
+  tasks:
+    - name: Lookup to see if hostname already exists
+      set_fact:
+        host: "{{ lookup('nios', 'record:host', filter={'name': test_host}, provider=nios_provider) }}"
+
+    - name: debug when entry exists
+      when: "'name' in host"
+      debug:
+        msg: hostname already exists
+
+    - name: block for creating entry
+      when: "'name' not in host"
+      block:
+      - name: debug when entry needs to be created
+        debug:
+          msg: does not exist, let's create one
+
+      - name: configure an IPv4 host record
+        nios_host_record:
+          name: "{{ test_host }}"
+          ipv4:
+            - address: "{{ lookup('nios_next_ip', subnet_range, provider=nios_provider)[0] }}"
+          state: present
+          provider: "{{nios_provider}}"
